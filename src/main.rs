@@ -36,14 +36,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             loop{
                 // !는 매크로 문법입니다. 러스트는 컴파일타임에 엄격한 통제를 하기 때문에 있다네요. rs만의 특징 신기하네요.
                 tokio::select! {
-                    // socket으로 받은걸 line에 저장하고 result(아마 에러통제?용으로 위에서 만든거일겁니다.)에 저장합니다.
+                    // socket으로 받은걸 line에 저장하고 result(아마 에러통제?용으로 위에서 만든거일겁니다. 임시변수라네요)에 저장합니다.
                     result = reader.read_line(&mut line) =>{
                         // 에러처리네요 조금 넘어가겠습니다.
                         match result {
+                            // 정상 수신이라 넘어감
                             Ok(0) => break,
                             Ok(_) => {
                                 println!("[전송 로그] {}", line.trim());
                                 // 에러 안나면 다른 클라이언트에 뿌려줘라 뭐 그런 의미인것 같네요.
+                                // rx.recv로 가는 분기를 만듦
                                 let _ = tx.send((line.clone(), peer_addr));
                                 // 비워주고
                                 line.clear();
@@ -51,7 +53,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             Err(_) => break,
                         }
                     }
-                    // rx.recv는 리시브인가
+                    // rx.recv는 서버 내부의 브로드캐스트 큐(위에 선언됨)으로부터 메세지를 수신하는것이라고 합니다.
                     Ok((msg, sender_addr)) = rx.recv() => {
                         if sender_addr != peer_addr {
                             let formatted = format!("{}\n", msg.trim_end());
